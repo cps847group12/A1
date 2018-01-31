@@ -8,19 +8,21 @@
 import os
 import time
 import re
+import requests
+import json
 from slackclient import SlackClient
 
 import json #used for debug printing
 
 
 # instantiate Slack client
-slack_client = SlackClient(os.environ.get('token'))
+slack_client = SlackClient('token')
 # starterbot's user ID in Slack: value is assigned after the bot starts up
 starterbot_id = None
 
 # constants
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
-EXAMPLE_COMMAND = "do"
+EXAMPLE_COMMAND = "Toronto"
 MENTION_REGEX = "^<@(|[WU].+)>(.*)"
 
 def parse_bot_commands(slack_events):
@@ -59,10 +61,13 @@ def handle_command(command, channel):
 
     # Finds and executes the given command, filling in response
     response = None
-    # This is where you start to implement more commands!
-    if command.startswith(EXAMPLE_COMMAND):
-        response = "Sure...write some more code then I can do that!"
-
+	
+    requestget = requests.get('http://api.openweathermap.org/data/2.5/weather?q=' + command + '&units=metric&appid=bbb393e2a17ca6ff2a90939e14b836e2')
+	
+    if requestget.status_code == 200:
+        responsedata=requestget.json()
+        response = 'Today\'s weather for: ' + responsedata['name'] + ', ' + responsedata['sys']['country'] + '\nDescription: ' + responsedata['weather'][0]['main'] + ', ' + responsedata['weather'][0]['description'] + '\nTemperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp']) + '\nMinimum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_min']) + '\nMaximum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_max']) + '\nHumidity: ' + str(responsedata['main']['humidity']) + '%\nWind: ' + "{0:.2f}".format(responsedata['wind']['speed']) + ' meters/sec'
+	
     # Sends the response back to the channel
     slack_client.api_call(
         "chat.postMessage",
