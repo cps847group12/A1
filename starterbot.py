@@ -14,7 +14,7 @@ import json #used for debug printing
 
 
 # instantiate Slack client
-slack_client = SlackClient('token')
+slack_client = SlackClient(os.environ.get('token'))
 # starterbot's user ID in Slack: value is assigned after the bot starts up
 starterbot_id = None
 
@@ -67,7 +67,7 @@ def handle_command(command, channel):
     slack_client.api_call(
         "chat.postMessage",
         channel=channel,
-        text=command
+        text=response or default_response
     )
 
 if __name__ == "__main__":
