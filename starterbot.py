@@ -2,7 +2,7 @@
 #Distributed under MIT license
 
 #don't forget to set the environmental variable SLACK_BOT_TOKEN using
-#export SLACK_BOT_TOKEN=''
+#export SLACK_BOT_TOKEN='xoxb'
 #or hardcode 
 
 import os
@@ -16,13 +16,14 @@ import json #used for debug printing
 
 
 # instantiate Slack client
-slack_client = SlackClient('token')
+slack_client = SlackClient('TOKEN-303510733220-I75yLw2RojwlZ9srQuWwdWL0')
 # starterbot's user ID in Slack: value is assigned after the bot starts up
 starterbot_id = None
 
 # constants
 RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
-EXAMPLE_COMMAND = "Toronto"
+ECHO_COMMAND = "echo"
+WEATHER_COMMAND = "weather"
 MENTION_REGEX = "^<@(|[WU].+)>(.*)"
 
 def parse_bot_commands(slack_events):
@@ -32,8 +33,8 @@ def parse_bot_commands(slack_events):
         If its not found, then this function returns None, None.
     """
     for event in slack_events:
-    	#uncomment line below to debug print
-    	#print json.dumps(event, indent = 2, sort_keys = True)
+        #uncomment line below to debug print
+        #print json.dumps(event, indent = 2, sort_keys = True)
         
         if event["type"] == "message" and not "subtype" in event:
             user_id, message = parse_direct_mention(event["text"])
@@ -57,17 +58,29 @@ def handle_command(command, channel):
         Executes bot command if the command is known
     """
     # Default response is help text for the user
-    default_response = "Not sure what you mean. Try *{}*.".format(EXAMPLE_COMMAND)
+    default_response = "Not sure what you mean. Try *{}* or *{} (city)*.".format(ECHO_COMMAND, WEATHER_COMMAND)
 
     # Finds and executes the given command, filling in response
     response = None
-	
-    requestget = requests.get('http://api.openweathermap.org/data/2.5/weather?q=' + command + '&units=metric&appid=bbb393e2a17ca6ff2a90939e14b836e2')
-	
-    if requestget.status_code == 200:
-        responsedata=requestget.json()
-        response = 'Today\'s weather for: ' + responsedata['name'] + ', ' + responsedata['sys']['country'] + '\nDescription: ' + responsedata['weather'][0]['main'] + ', ' + responsedata['weather'][0]['description'] + '\nTemperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp']) + '\nMinimum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_min']) + '\nMaximum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_max']) + '\nHumidity: ' + str(responsedata['main']['humidity']) + '%\nWind: ' + "{0:.2f}".format(responsedata['wind']['speed']) + ' meters/sec'
-	
+    
+    if command.startswith(ECHO_COMMAND):
+        if len(ECHO_COMMAND)==len(command):
+           response="Sure...I need some text to do that!"
+        else:
+           response=command[command.index(ECHO_COMMAND) + len(ECHO_COMMAND) + 1:]
+    
+    elif command.startswith(WEATHER_COMMAND):
+        if len(WEATHER_COMMAND)==len(command):
+           response="Sure...I need a city to do that!"      
+        else:
+           requestget = requests.get('http://api.openweathermap.org/data/2.5/weather?q=' + command[command.index(WEATHER_COMMAND) + len(WEATHER_COMMAND) + 1:] + '&units=metric&appid=bbb393e2a17ca6ff2a90939e14b836e2')
+    
+           if requestget.status_code == 200:
+              responsedata=requestget.json()
+              response = 'Today\'s weather for: ' + responsedata['name'] + ', ' + responsedata['sys']['country'] + '\nDescription: ' + responsedata['weather'][0]['main'] + ', ' + responsedata['weather'][0]['description'] + '\nTemperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp']) + '\nMinimum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_min']) + '\nMaximum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_max']) + '\nHumidity: ' + str(responsedata['main']['humidity']) + '%\nWind: ' + "{0:.2f}".format(responsedata['wind']['speed']) + ' meters/sec'
+           else:
+              response="Unfortunately...I do not recognize the city"         
+    
     # Sends the response back to the channel
     slack_client.api_call(
         "chat.postMessage",
@@ -76,9 +89,9 @@ def handle_command(command, channel):
     )
 
 if __name__ == "__main__":
-	# avm: connect is designed for larger teams, 
-	# see https://slackapi.github.io/python-slackclient/real_time_messaging.html
-	# for details
+    # avm: connect is designed for larger teams, 
+    # see https://slackapi.github.io/python-slackclient/real_time_messaging.html
+    # for details
     if slack_client.rtm_connect(with_team_state=False):
         print("Starter Bot connected and running!")
         # Read bot's user ID by calling Web API method `auth.test`
