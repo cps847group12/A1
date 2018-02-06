@@ -2,7 +2,7 @@
 #Distributed under MIT license
 
 #don't forget to set the environmental variable SLACK_BOT_TOKEN using
-#export SLACK_BOT_TOKEN='xoxb'
+#export SLACK_BOT_TOKEN=xoxb
 #or hardcode 
 
 import os
@@ -10,6 +10,7 @@ import time
 import re
 import requests
 import json
+import enchant
 from slackclient import SlackClient
 
 import json #used for debug printing
@@ -73,13 +74,14 @@ def handle_command(command, channel):
         if len(WEATHER_COMMAND)==len(command):
            response="Sure...I need a city to do that!"      
         else:
-           requestget = requests.get('http://api.openweathermap.org/data/2.5/weather?q=' + command[command.index(WEATHER_COMMAND) + len(WEATHER_COMMAND) + 1:] + '&units=metric&appid=bbb393e2a17ca6ff2a90939e14b836e2')
-    
+           dictionary = enchant.request_pwl_dict("cities.txt")
+           suggestion=dictionary.suggest(command[command.index(WEATHER_COMMAND) + len(WEATHER_COMMAND) + 1:])
+           requestget = requests.get('http://api.openweathermap.org/data/2.5/weather?q=' + suggestion[0].replace(" ", "%20") + '&units=metric&appid=bbb393e2a17ca6ff2a90939e14b836e2')
            if requestget.status_code == 200:
-              responsedata=requestget.json()
-              response = 'Today\'s weather for: ' + responsedata['name'] + ', ' + responsedata['sys']['country'] + '\nDescription: ' + responsedata['weather'][0]['main'] + ', ' + responsedata['weather'][0]['description'] + '\nTemperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp']) + '\nMinimum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_min']) + '\nMaximum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_max']) + '\nHumidity: ' + str(responsedata['main']['humidity']) + '%\nWind: ' + "{0:.2f}".format(responsedata['wind']['speed']) + ' meters/sec'
+                 responsedata=requestget.json()
+                 response = 'Today\'s weather for: ' + responsedata['name'] + ', ' + responsedata['sys']['country'] + '\nDescription: ' + responsedata['weather'][0]['main'] + ', ' + responsedata['weather'][0]['description'] + '\nTemperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp']) + '\nMinimum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_min']) + '\nMaximum Temperature in Celsius: ' + "{0:.2f}".format(responsedata['main']['temp_max']) + '\nHumidity: ' + str(responsedata['main']['humidity']) + '%\nWind: ' + "{0:.2f}".format(responsedata['wind']['speed']) + ' meters/sec'
            else:
-              response="Unfortunately...I do not recognize the city"         
+              response="Unfortunately...I do not recognize the city"                   
     
     # Sends the response back to the channel
     slack_client.api_call(
